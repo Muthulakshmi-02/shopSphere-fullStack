@@ -1,0 +1,404 @@
+<div class="admin-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">MyShop Admin</div>
+
+    <nav>
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'products'"
+        (click)="activeTab.set('products')"
+      >
+        Products
+      </button>
+
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'categories'"
+        (click)="activeTab.set('categories')"
+      >
+        Categories
+      </button>
+
+      <button
+        class="tab-btn"
+        [class.active]="activeTab() === 'orders'"
+        (click)="activeTab.set('orders')"
+      >
+        Orders
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <header class="main-header">
+      <div>
+        <h1 class="title">
+          {{ activeTab() === 'products' ? 'Products' : activeTab() === 'categories' ? 'Categories' : 'Orders' }}
+        </h1>
+        <p class="subtitle">
+          {{
+            activeTab() === 'products'
+              ? 'Manage catalog, prices, stock and availability'
+              : activeTab() === 'categories'
+              ? 'Organize products into categories'
+              : 'View customer orders and update their status'
+          }}
+        </p>
+      </div>
+
+      <!-- Products header tools -->
+      <div class="header-actions" *ngIf="activeTab() === 'products'">
+        <div class="search-wrapper">
+          <span class="icon">🔍</span>
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search products..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="onSearchChange($event)"
+          />
+        </div>
+
+        <button class="btn primary" (click)="openAddProduct()">
+          + Add product
+        </button>
+      </div>
+
+      <!-- Categories header tools -->
+      <div class="header-actions" *ngIf="activeTab() === 'categories'">
+        <input
+          type="text"
+          class="input"
+          placeholder="New category name"
+          [(ngModel)]="categoryForm.name"
+        />
+        <input
+          type="text"
+          class="input"
+          placeholder="Description (optional)"
+          [(ngModel)]="categoryForm.description"
+        />
+        <button class="btn primary" (click)="saveCategory()">
+          Save category
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <section class="content">
+      <!-- PRODUCTS TAB -->
+      <div *ngIf="activeTab() === 'products'">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <span class="card-title">Product list</span>
+              <span
+                class="subtitle-chip"
+                *ngIf="totalElements() && totalElements() > 0"
+              >
+                {{ totalElements() }} items
+              </span>
+            </div>
+
+            <div class="header-right">
+              <select
+                class="input sort-select"
+                [ngModel]="currentSort"
+                (ngModelChange)="changeSort($event)"
+              >
+                <option value="price,asc">Price: Low to High</option>
+                <option value="price,desc">Price: High to Low</option>
+                <option value="name,asc">Name: A → Z</option>
+                <option value="name,desc">Name: Z → A</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrapper" *ngIf="!loading(); else loadingTpl">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Status</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let p of products()">
+                  <td>
+                    <img
+                      [src]="productImageUrl(p.imageUrl)" loading="lazy" decoding="async"
+                      [alt]="p.name"
+                      class="product-thumb"
+                    />
+                  </td>
+
+                  <td>
+                    <div class="main-text">{{ p.name }}</div>
+                    <div class="sub-text line-clamp">
+                      {{ p.description }}
+                    </div>
+                  </td>
+
+                  <td>
+                    <span class="pill">
+                      {{ p.categoryName || 'Unassigned' }}
+                    </span>
+                  </td>
+
+                  <td>
+                    ₹{{ p.price | number : '1.2-2' }}
+                  </td>
+
+                  <td>
+                    <span
+                      class="badge"
+                      [class.badge-danger]="p.stock === 0"
+                      [class.badge-warning]="p.stock > 0 && p.stock < 10"
+                      [class.badge-success]="p.stock >= 10"
+                    >
+                      {{ p.stock }} 
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      class="status-dot"
+                      [class.status-green]="p.status === 'IN_STOCK'"
+                      [class.status-red]="p.status === 'OUT_OF_STOCK'"
+                    ></span>
+                    {{ p.status }}
+                  </td>
+
+                  <td class="text-right">
+                    <button class="btn ghost" (click)="openEditProduct(p)">
+                      Edit
+                    </button>
+                    <button
+                      class="btn danger ghost"
+                      (click)="deleteProduct(p.productId)"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+
+                <tr *ngIf="products().length === 0">
+                  <td colspan="7" class="empty-state">
+                    No products found. Try changing search or add a new product.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <ng-template #loadingTpl>
+            <div class="loader">Loading products...</div>
+          </ng-template>
+
+          <!-- Pagination -->
+          <div class="pagination" *ngIf="totalPages() > 1">
+            <button
+              class="btn ghost"
+              [disabled]="page() === 0"
+              (click)="goPrevPage()"
+            >
+              ‹ Prev
+            </button>
+
+            <span class="page-info">
+              Page {{ page() + 1 }} of {{ totalPages() }}
+            </span>
+
+            <button
+              class="btn ghost"
+              [disabled]="page() >= totalPages() - 1"
+              (click)="goNextPage()"
+            >
+              Next ›
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATEGORIES TAB -->
+      <div *ngIf="activeTab() === 'categories'">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Categories</span>
+            <span class="subtitle-chip" *ngIf="categories()?.length">
+              {{ categories().length }} total
+            </span>
+          </div>
+
+          <ul class="category-list">
+            <li *ngFor="let c of categories()">
+              <div>
+                <div class="main-text">{{ c.name }}</div>
+                <div class="sub-text" *ngIf="c.description">
+                  {{ c.description }}
+                </div>
+              </div>
+            </li>
+
+            <li *ngIf="categories().length === 0" class="empty-state">
+              No categories yet. Add your first category above.
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ORDERS TAB -->
+      <div *ngIf="activeTab() === 'orders'">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">All Orders</span>
+            <span class="subtitle-chip" *ngIf="orders()?.length">
+              {{ orders().length }} total
+            </span>
+          </div>
+
+          <div class="orders-skeleton" *ngIf="ordersLoading()">
+            <div class="skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+          </div>
+
+          <table class="orders-table" *ngIf="!ordersLoading() && orders().length > 0">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Date</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let o of orders()">
+                <td class="main-text">#{{ o.orderId }}</td>
+                <td class="sub-text">{{ o.orderDate | date:'mediumDate' }}</td>
+                <td class="sub-text">{{ o.items?.length || 0 }} item(s)</td>
+                <td class="main-text">{{ o.totalAmount | currency }}</td>
+                <td>
+                  <span class="status-badge" [attr.data-status]="o.paymentStatus">
+                    {{ o.paymentStatus }}
+                  </span>
+                </td>
+                <td>
+                  <select
+                    class="input status-select"
+                    [ngModel]="o.orderStatus"
+                    [disabled]="updatingOrderId() === o.orderId"
+                    (ngModelChange)="updateOrderStatus(o.orderId, $event)"
+                  >
+                    <option *ngFor="let s of orderStatusOptions" [value]="s">{{ s }}</option>
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="empty-state" *ngIf="!ordersLoading() && orders().length === 0">
+            No orders have been placed yet.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- PRODUCT MODAL -->
+  <div class="modal-backdrop" *ngIf="isModalOpen()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>{{ isEditMode() ? 'Edit product' : 'Add product' }}</h2>
+        <button class="icon-btn" (click)="isModalOpen.set(false)">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Name</label>
+            <input class="input" [(ngModel)]="productForm.name" />
+          </div>
+
+          <div class="form-field">
+            <label>Price</label>
+            <input
+              class="input"
+              type="number"
+              min="0"
+              [(ngModel)]="productForm.price"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>Stock</label>
+            <input
+              class="input"
+              type="number"
+              min="0"
+              [(ngModel)]="productForm.stock"
+            />
+          </div>
+
+          <div class="form-field">
+            <label>Category</label>
+            <select
+              class="input"
+              [(ngModel)]="productForm.categoryId"
+            >
+              <option [ngValue]="0" disabled>Select category</option>
+              <option
+                *ngFor="let c of categories()"
+                [ngValue]="c.categoryId"
+              >
+                {{ c.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-field full">
+            <label>Description</label>
+            <textarea
+              class="input"
+              rows="3"
+              [(ngModel)]="productForm.description"
+            ></textarea>
+          </div>
+
+          <div class="form-field full">
+            <label>Image URL</label>
+            <input class="input" [(ngModel)]="productForm.imageUrl" />
+          </div>
+
+          <div class="form-field">
+            <label>Status</label>
+            <select
+              class="input"
+              [(ngModel)]="productForm.status"
+            >
+              <option [ngValue]="'IN_STOCK'">In stock</option>
+              <option [ngValue]="'OUT_OF_STOCK'">Out of stock</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn ghost" (click)="isModalOpen.set(false)">
+          Cancel
+        </button>
+        <button class="btn primary" (click)="saveProduct()">
+          {{ isEditMode() ? 'Save changes' : 'Create product' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

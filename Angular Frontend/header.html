@@ -1,0 +1,66 @@
+<header class="main-header">
+    <div class="header-container">
+        <!-- Brand -->
+        <a routerLink="/" class="brand-logo">
+            <div class="logo-icon">🛒</div>
+            <span class="brand-name">ShopSphere</span>
+        </a>
+
+        <!-- Orders Button -->
+        <button class="orders-btn" (click)="goToOrders()">
+            <svg class="orders-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 4.77A1.965 1.965 0 0 0 3 6v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-.57-.21-1.07-.54-1.77zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12zm0 0l-.81 1H3l.94-1h1.18z" />
+            </svg>
+            <span>My Orders</span>
+        </button>
+
+        <!-- Actions -->
+        <div class="header-actions">
+            <!-- Nav Links -->
+            <nav class="nav-links">
+                <a routerLink="/products" routerLinkActive="active" class="nav-link">
+                    Products
+                </a>
+                <a routerLink="/products" class="nav-link">Categories</a>
+            </nav>
+
+            <!-- Auth -->
+            @if (isUserLoggedIn()) {
+            <div class="user-profile">
+                <div class="avatar" [title]="auth.currentUser()?.userName">
+                    {{ userInitials() }}
+                </div>
+                <div class="user-info">
+                    <div class="user-name">
+                        {{ auth.currentUser()?.userName }}
+                    </div>
+                    <div class="user-role">
+                        {{ auth.currentUser()?.role }}
+                    </div>
+                </div>
+                <button class="logout-btn" type="button" (click)="logout()">
+                    <svg class="logout-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                    </svg>
+                </button>
+            </div>
+            } @else {
+            <div class="auth-links">
+                <a routerLink="/login" class="auth-link">Sign In</a>
+                <a routerLink="/register" class="btn-primary">Join Free</a>
+            </div>
+            }
+
+            <!-- Cart button -->
+            <button class="cart-btn" type="button" (click)="goToCart()">
+
+                <div class="cart-icon">🛒</div>
+                @if (cartCount() > 0) {
+                <span class="cart-badge">{{ cartCount() }}</span>
+                }
+            </button>
+        </div>
+    </div>
+</header>

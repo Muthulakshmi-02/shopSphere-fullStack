@@ -1,0 +1,225 @@
+<div class="checkout-container">
+  <!-- Header -->
+  <div class="checkout-header">
+    <h1>Checkout</h1>
+    <p class="buy-now-notice" *ngIf="route.snapshot.queryParams['buyNow']">
+      🚀 Buy Now - Fast checkout activated!
+    </p>
+  </div>
+
+  <div class="checkout-content" *ngIf="step() === 'shipping'; else paymentStep">
+    <!-- Left: Shipping Form (60%) -->
+    <div class="checkout-form-section">
+      <h3>📦 Shipping Address</h3>
+
+      <form class="shipping-form">
+        <div class="form-group">
+          <label>Shipping Address *</label>
+          <input
+            type="text"
+            [(ngModel)]="orderForm.shippingAddress"
+            name="shippingAddress"
+            placeholder="123 Main St"
+            class="form-control"
+            required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>City *</label>
+            <input
+              type="text"
+              [(ngModel)]="orderForm.city"
+              name="city"
+              placeholder="New York"
+              class="form-control"
+              required>
+          </div>
+          <div class="form-group">
+            <label>State</label>
+            <input
+              type="text"
+              [(ngModel)]="orderForm.state"
+              name="state"
+              placeholder="NY"
+              class="form-control">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Zip Code</label>
+            <input
+              type="text"
+              [(ngModel)]="orderForm.zipCode"
+              name="zipCode"
+              placeholder="10001"
+              class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input
+              type="tel"
+              [(ngModel)]="orderForm.phoneNumber"
+              name="phoneNumber"
+              placeholder="+1 (555) 123-4567"
+              class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Payment Method</label>
+          <select
+            [(ngModel)]="orderForm.paymentMethod"
+            name="paymentMethod"
+            class="form-control">
+            <option value="CREDIT_CARD">Credit Card</option>
+            <option value="DEBIT_CARD">Debit Card</option>
+            <option value="COD">Cash on Delivery</option>
+          </select>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right: Order Summary (40%) -->
+    <div class="order-summary">
+      <h3>🛒 Order Summary</h3>
+
+      <div class="cart-items" *ngIf="cart(); else emptyCart">
+        <div class="cart-item" *ngFor="let item of cart()?.items || []">
+          <div class="item-details">
+            <h4>{{ item.productName }}</h4>
+            <p>Qty: {{ item.quantity }} × ${{ item.price | number:'1.2-2' }}</p>
+          </div>
+          <div class="item-price">
+            ${{ (item.quantity * item.price) | number:'1.2-2' }}
+          </div>
+        </div>
+
+        <div class="total-divider"></div>
+
+        <div class="total-row">
+          <span>Total:</span>
+          <strong>${{ cart()?.totalAmount | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+
+      <ng-template #emptyCart>
+        <div class="empty-cart">
+          <p>No items in cart</p>
+        </div>
+      </ng-template>
+
+      <!-- Confirm Order Button -->
+      <button
+        class="confirm-order-btn"
+        (click)="confirmOrder()"
+        [disabled]="isProcessing()">
+        <span *ngIf="!isProcessing()">
+          {{ isCardPayment ? '💳 Continue to Payment' : '✅ Place Order (Pay on Delivery)' }}
+        </span>
+        <span *ngIf="isProcessing()">⏳ Processing...</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 2: Card payment -->
+  <ng-template #paymentStep>
+    <div class="checkout-content">
+      <div class="checkout-form-section">
+        <h3>💳 Card Details</h3>
+        <p class="mock-gateway-note">
+          Demo payment form - no real card network is contacted. This calls
+          your backend's payment verification endpoint to mark the order paid.
+        </p>
+
+        <form class="shipping-form">
+          <div class="form-group">
+            <label>Name on Card *</label>
+            <input
+              type="text"
+              [(ngModel)]="card.nameOnCard"
+              name="nameOnCard"
+              placeholder="Jane Doe"
+              class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label>Card Number *</label>
+            <input
+              type="text"
+              [(ngModel)]="card.cardNumber"
+              name="cardNumber"
+              placeholder="4242 4242 4242 4242"
+              maxlength="19"
+              class="form-control">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Expiry (MM/YY) *</label>
+              <input
+                type="text"
+                [(ngModel)]="card.expiry"
+                name="expiry"
+                placeholder="12/28"
+                maxlength="5"
+                class="form-control">
+            </div>
+            <div class="form-group">
+              <label>CVV *</label>
+              <input
+                type="password"
+                [(ngModel)]="card.cvv"
+                name="cvv"
+                placeholder="123"
+                maxlength="4"
+                class="form-control">
+            </div>
+          </div>
+
+          <p class="payment-error" *ngIf="paymentError()">{{ paymentError() }}</p>
+        </form>
+      </div>
+
+      <div class="order-summary">
+        <h3>🛒 Order Summary</h3>
+
+        <div class="cart-items" *ngIf="pendingOrder() as order">
+          <div class="cart-item" *ngFor="let item of order.items">
+            <div class="item-details">
+              <h4>{{ item.productName }}</h4>
+              <p>Qty: {{ item.quantity }} × ${{ item.priceAtPurchase | number:'1.2-2' }}</p>
+            </div>
+            <div class="item-price">
+              ${{ (item.quantity * item.priceAtPurchase) | number:'1.2-2' }}
+            </div>
+          </div>
+
+          <div class="total-divider"></div>
+
+          <div class="total-row">
+            <span>Total:</span>
+            <strong>${{ order.totalAmount | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <button
+          class="confirm-order-btn"
+          (click)="payWithCard()"
+          [disabled]="isProcessing()">
+          <span *ngIf="!isProcessing()">🔒 Pay {{ pendingOrder()?.totalAmount | currency }}</span>
+          <span *ngIf="isProcessing()">⏳ Processing payment...</span>
+        </button>
+
+        <button
+          class="back-to-shipping-btn"
+          type="button"
+          (click)="backToShipping()"
+          [disabled]="isProcessing()">
+          ← Back to shipping
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</div>
